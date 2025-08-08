@@ -30,7 +30,7 @@ def list_repo_files():
 
     print("\n--- Untracked Files ---")
     # Using PowerShell to list untracked files, excluding directories and .git folder
-    untracked_files_command = "powershell -Command \"Get-ChildItem -Path . -Recurse -File | ForEach-Object { $_.FullName }\""
+    untracked_files_command = "powershell -Command \"Get-ChildItem -Path . -Recurse -File | Select-Object -ExpandProperty FullName\""
     untracked_files = run_command(untracked_files_command, cwd=REPO_PATH)
     if untracked_files:
         tracked_list = tracked_files.splitlines() if tracked_files else []
