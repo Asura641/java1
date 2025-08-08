@@ -31,15 +31,8 @@ def push_to_git():
         return
 
     print("📦 Moving Java files to 'java' subdirectory...")
-    # Move .java and .class files into the 'java' subdirectory
-    move_command = (
-        "Get-ChildItem -Path . -File | " +
-        "Where-Object {{ ($$_.Extension -eq '.java' -or $$_.Extension -eq '.class') -and $$_.Name -ne 'auto_push.py' }} | " +
-        "ForEach-Object {{ Write-Host \"Attempting to move: $$($$_.FullName)\"; Move-Item -Path $$_.FullName -Destination (Join-Path '{REPO_PATH}' 'java') -Force }}"
-    )
-    # Create the 'java' subdirectory if it doesn't exist
-    run_command(f"powershell -Command \"New-Item -ItemType Directory -Force -Path (Join-Path '{REPO_PATH}' 'java')\"", cwd=REPO_PATH)
-    run_command(f"powershell -Command \"& {{ {move_command} }}\"", cwd=REPO_PATH)
+    # Execute the PowerShell script to move .java and .class files
+    run_command(f"powershell -File move_java_files.ps1 -RepoPath '{REPO_PATH}'", cwd=REPO_PATH)
 
     print("📌 Adding files...")
     run_command("git add .", cwd=REPO_PATH)
