@@ -35,7 +35,7 @@ def push_to_git():
     move_command = (
         "Get-ChildItem -Path . -Include *.java, *.class -File | " +
         "Where-Object { $_.Name -ne 'auto_push.py' } | " +
-        "ForEach-Object { Move-Item -Path $_.FullName -Destination (Join-Path $PSScriptRoot 'java') -Force }"
+        "ForEach-Object { Move-Item -Path $_.FullName -Destination (Join-Path '{REPO_PATH}' 'java') -Force }"
     )
     # Create the 'java' subdirectory if it doesn't exist
     run_command(f"powershell -Command \"New-Item -ItemType Directory -Force -Path (Join-Path '{REPO_PATH}' 'java')\"", cwd=REPO_PATH)
