@@ -1,0 +1,24 @@
+class MyException extends Exeception{
+	public MyException(String message){
+	super(message);
+}
+
+}
+public class chekuthan{
+	public static void checkage(int age) throws MyExcption{
+
+		if(age < 18 ){
+			throws new MyException ("Custom: Age below 18 not allowed");		
+			}
+		System.out.println("Eligible");
+	}
+public static void main(String [] args ){
+	try{ 
+		checkAge(15);
+}catch(MyException e){
+
+}
+
+	
+
+}

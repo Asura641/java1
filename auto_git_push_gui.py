@@ -1,73 +1,56 @@
 import sys
 import os
+import sys
 import time
+import subprocess
 from PyQt5 import QtWidgets, QtGui, QtCore
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from git import Repo, GitCommandError
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 
 # === CONFIGURATION ===
-WATCH_FOLDER = r"c:\Users\abhis\java"
-COMMIT_MESSAGE = "Auto-commit: Updated files"
+WATCH_FOLDER = "c:\\Users\\abhis\\java"
 
-class GitWorker(QObject):
-    progress = pyqtSignal(int)
-    finished = pyqtSignal()
-    error = pyqtSignal(str)
 
-    def __init__(self, repo_path, commit_message):
+from auto_push import push_to_git, REPO_PATH, COMMIT_MESSAGE, run_command
+
+
+
+class GitPushHandler(QObject):
+    file_modified = pyqtSignal(str)
+    file_created = pyqtSignal(str)
+    def __init__(self, repo_path, tray_app):
         super().__init__()
         self.repo_path = repo_path
-        self.commit_message = commit_message
+        self.tray_app = tray_app
+        self.push_timer = QtCore.QTimer()
+        self.push_timer.setSingleShot(True)
+        self.push_timer.timeout.connect(self.start_git_push)
+        self.active_threads = [] # To keep references to threads
 
-    def run(self):
-        try:
-            from git import Repo
-            repo = Repo(self.repo_path)
-            repo.git.add(A=True)
-            if repo.is_dirty():
-                repo.index.commit(self.commit_message)
-                self.progress.emit(20)
-                repo.remotes.origin.push()
-                self.progress.emit(100)
-            else:
-                self.progress.emit(100) # No changes to push, still complete
-        except Exception as e:
-            self.error.emit(f"Error: {e}")
-        finally:
-            self.finished.emit()
+    def check_for_changes(self):
+        print("[GitPushHandler] Checking for changes...")
+        status = run_command("git status --porcelain", cwd=self.repo_path)
+        if status:
+            print("[GitPushHandler] Changes detected. Scheduling push.")
+            self.tray_app.status_label.setText("Changes detected. Scheduling push...")
+            self.push_timer.start(5000) # Wait 5 seconds before pushing
 
-class GitPushHandler(FileSystemEventHandler):
-    def __init__(self, repo_path, progress_callback, error_callback):
-        super().__init__()
-        self.repo_path = repo_path
-        self.progress_callback = progress_callback
-        self.error_callback = error_callback
 
-    def on_modified(self, event):
-        if event.is_directory:
-            return
-        self.start_git_push()
-
-    def on_created(self, event):
-        if event.is_directory:
-            return
-        self.start_git_push()
 
     def start_git_push(self):
-        self.thread = QThread()
-        self.worker = GitWorker(self.repo_path, COMMIT_MESSAGE)
-        self.worker.moveToThread(self.thread)
+        print("[GitPushHandler] Directly calling push_to_git.")
+        try:
+            output = push_to_git()
+            self.tray_app.update_progress(output)
+        except Exception as e:
+            self.tray_app.show_error(f"Error during git push: {e}")
 
-        self.worker.progress.connect(self.progress_callback)
-        self.worker.error.connect(self.error_callback)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
 
-        self.thread.started.connect(self.worker.run)
-        self.thread.start()
+
+
+
+
+
+
 
 class GitTrayApp(QtWidgets.QSystemTrayIcon):
     def __init__(self, repo_path):
@@ -94,34 +77,38 @@ class GitTrayApp(QtWidgets.QSystemTrayIcon):
         self.progress_window.show()
         self.show()
 
-    def update_progress(self, value):
-        self.progress_bar.setValue(value)
-        if value == 100:
-            self.status_label.setText("Push complete!")
-        elif value == 0:
-            self.status_label.setText("Starting push...")
-        else:
-            self.status_label.setText(f"Pushing... {value}%")
+    def update_progress(self, message):
+        self.status_label.setText(message)
 
     def show_error(self, message):
         QtWidgets.QMessageBox.critical(self.progress_window, "Git Error", message)
         self.status_label.setText("Error occurred!")
         self.progress_bar.setValue(0)
 
+    def handle_file_event(self, path):
+        print(f"[GitTrayApp] File event received for: {path}")
+        # Here you would trigger the git push logic, perhaps by calling start_git_push on event_handler
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    # repo = Repo(WATCH_FOLDER) # No longer needed directly in main thread
-    tray_app = GitTrayApp(WATCH_FOLDER)
-    event_handler = GitPushHandler(WATCH_FOLDER, tray_app.update_progress, tray_app.show_error)
-    observer = Observer()
-    observer.schedule(event_handler, WATCH_FOLDER, recursive=True)
-    observer.start()
 
-    try:
-        sys.exit(app.exec_())
-    finally:
-        observer.stop()
-        observer.join()
+    tray_app = GitTrayApp(REPO_PATH)
+    event_handler = GitPushHandler(REPO_PATH, tray_app)
+    # tray_app.event_handler = event_handler  # allow handle_file_event to call start_git_push()
+
+    # Connect signals from GitPushHandler to GitTrayApp's handle_file_event
+    # Note: GitPushHandler now directly calls schedule_push via QMetaObject.invokeMethod
+    # So these connections are not strictly needed for watchdog events, but keep for clarity if needed elsewhere.
+    # event_handler.file_modified.connect(tray_app.handle_file_event)
+    # event_handler.file_created.connect(tray_app.handle_file_event)
+
+    # Start a timer to periodically check for changes
+    check_timer = QtCore.QTimer()
+    check_timer.timeout.connect(event_handler.check_for_changes)
+    check_timer.start(10000) # Check every 10 seconds
+    print("[main] QTimer started for polling.")
+
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
