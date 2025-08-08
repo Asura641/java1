@@ -1,10 +1,11 @@
 import os
+import os
 import subprocess
 from datetime import datetime
 
 # -------- CONFIGURATION --------
-REPO_PATH = r"c:\Users\abhis\java"  # Replace with your actual local path
-BRANCH = "master"                                 # Use the correct branch (main or master)
+REPO_PATH = r"c:\Users\abhis\java"  # Set your local repo path
+BRANCH = "master"
 COMMIT_MESSAGE = f"Auto update {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 # --------------------------------
 
@@ -19,82 +20,50 @@ def run_command(command, cwd=None):
         print(f"[ERROR] {e.stderr.strip()}")
         return None
 
-def list_repo_files():
-    print("📂 Listing files in the repository:")
+def get_git_tracked_files():
+    output = run_command("git ls-files", cwd=REPO_PATH)
+    if output:
+        return set(os.path.normpath(f.strip()) for f in output.splitlines())
+    return set()
 
-    # Get tracked files (relative paths)
-    print("--- Tracked Files ---")
-    tracked_files_raw = run_command("git ls-files", cwd=REPO_PATH)
-    tracked_files = tracked_files_raw.splitlines() if tracked_files_raw else []
-    for f in tracked_files:
-        print(f)
+def get_all_local_files():
+    local_files = set()
+    for root, dirs, files in os.walk(REPO_PATH):
+        # Skip .git folder
+        if '.git' in dirs:
+            dirs.remove('.git')
+        for file in files:
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, REPO_PATH)
+            local_files.add(os.path.normpath(rel_path))
+    return local_files
 
-    print("\n--- Untracked Files ---")
-    # Get all files recursively using PowerShell (absolute paths)
-    untracked_files_raw = run_command(
-        'powershell -Command "Get-ChildItem -Path . -Recurse -File | ForEach-Object { $_.FullName }"',
-        cwd=REPO_PATH
-    )
-    if not untracked_files_raw:
-        print("⚠️ Could not get file list from PowerShell.")
-        return
+def list_untracked_files():
+    print("📂 Checking for files present in local folder but not tracked by Git...")
+    tracked_files = get_git_tracked_files()
+    local_files = get_all_local_files()
 
-    all_files = untracked_files_raw.splitlines()
-    untracked_list = []
-    repo_path_normalized = REPO_PATH.replace('/', '\\').rstrip("\\") + "\\"
+    untracked_files = local_files - tracked_files
 
-    # Convert tracked files to lowercase + normalized for better comparison
-    tracked_set = set(f.lower().replace('/', '\\') for f in tracked_files)
-
-    print(f"Debug: all_files = {all_files}")
-    print(f"Debug: tracked_set = {tracked_set}")
-
-    for full_path in all_files:
-        full_path = full_path.strip()
-        print(f"Debug: Processing full_path = {full_path}")
-        if not full_path.startswith(repo_path_normalized):
-            print(f"Debug: Skipping {full_path} as it does not start with {repo_path_normalized}")
-            continue  # Skip anything weird
-
-        rel_path = full_path[len(repo_path_normalized):]  # relative path
-        rel_path_normalized = rel_path.replace('/', '\\')
-        print(f"Debug: rel_path = {rel_path}, rel_path_normalized = {rel_path_normalized}")
-
-        if (
-            '.git' in rel_path_normalized.lower() or
-            rel_path_normalized.lower().startswith('java\\') or
-            rel_path_normalized.lower() in tracked_set
-        ):
-            print(f"Debug: Skipping {rel_path_normalized} due to filter conditions.")
-            continue  # Skip git, already tracked, or inside 'java/'
-
-        untracked_list.append(rel_path_normalized)
-        print(f"Debug: Added {rel_path_normalized} to untracked_list.")
-
-    if untracked_list:
-        print("Untracked files:")
-        for f in untracked_list:
-            print(f)
+    if untracked_files:
+        print("❗ Untracked Files Detected:")
+        for f in sorted(untracked_files):
+            print(f"- {f}")
     else:
-        print("✅ No untracked files found.")
-    print("-----------------------")
+        print("✅ All local files are tracked by Git.")
 
 def push_to_git():
     if not os.path.exists(REPO_PATH):
         print("❌ Repository path not found!")
         return
 
-    list_repo_files() # Call the new function here
+    list_untracked_files()  # Show files that are local but not in git
 
     print("🔍 Checking for file changes...")
     status = run_command("git status --porcelain", cwd=REPO_PATH)
     if not status:
         print("✅ No changes detected. Nothing to push.")
         return
-
-    print("📦 Moving Java files to 'java' subdirectory...")
-    # Execute the PowerShell script to move .java and .class files
-    run_command(f"powershell -File move_java_files.ps1 -RepoPath '{REPO_PATH}'", cwd=REPO_PATH)
 
     print("📌 Adding files...")
     run_command("git add .", cwd=REPO_PATH)
