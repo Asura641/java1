@@ -43,6 +43,9 @@ def list_untracked_files():
     tracked_files = get_git_tracked_files()
     local_files = get_all_local_files()
 
+    print(f"Debug: Tracked files: {tracked_files}")
+    print(f"Debug: Local files: {local_files}")
+
     untracked_files = local_files - tracked_files
 
     if untracked_files:
