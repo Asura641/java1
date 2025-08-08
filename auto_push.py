@@ -4,7 +4,7 @@ from datetime import datetime
 
 # -------- CONFIGURATION --------
 REPO_PATH = r"c:\Users\abhis\java"  # Replace with your actual local path
-BRANCH = "main"                                 # Use the correct branch (main or master)
+BRANCH = "master"                                 # Use the correct branch (main or master)
 COMMIT_MESSAGE = f"Auto update {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 # --------------------------------
 
