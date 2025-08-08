@@ -41,6 +41,10 @@ def list_repo_files():
         for f_abs in all_files:
             f_rel = f_abs[repo_path_len:]
             # Exclude .git folder and files already in the java subdirectory
+            print(f"Checking file: {f_rel}")
+            print(f"  .git not in f_rel: {'.git' not in f_rel}")
+            print(f"  not f_rel.startswith('java\\'): " + str(not f_rel.startswith('java\\')))
+            print(f"  f_rel not in tracked_list: {f_rel not in tracked_list}")
             if '.git' not in f_rel and not f_rel.startswith('java\\') and f_rel not in tracked_list:
                 untracked_list.append(f_rel)
 
