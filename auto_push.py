@@ -38,6 +38,8 @@ def list_repo_files():
         all_files = untracked_files.splitlines()
         untracked_list = []
         repo_path_len = len(REPO_PATH.replace('/', '\\')) + 1 # +1 for the trailing slash
+        print(f"Debug: all_files = {all_files}")
+        print(f"Debug: tracked_list = {tracked_list}")
         print(f"All files from PowerShell (all_files): {all_files}")
         print(f"Tracked files from Git (tracked_list): {tracked_list}")
         for f_abs in all_files:
