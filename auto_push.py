@@ -21,43 +21,54 @@ def run_command(command, cwd=None):
 
 def list_repo_files():
     print("📂 Listing files in the repository:")
+
+    # Get tracked files (relative paths)
     print("--- Tracked Files ---")
-    tracked_files = run_command("git ls-files", cwd=REPO_PATH)
-    if tracked_files:
-        print(tracked_files)
-    else:
-        print("No tracked files found.")
+    tracked_files_raw = run_command("git ls-files", cwd=REPO_PATH)
+    tracked_files = tracked_files_raw.splitlines() if tracked_files_raw else []
+    for f in tracked_files:
+        print(f)
 
     print("\n--- Untracked Files ---")
-    # Using PowerShell to list untracked files, excluding directories and .git folder
-    untracked_files_command = "powershell -Command \"Get-ChildItem -Path . -Recurse -File | Select-Object -ExpandProperty FullName\""
-    untracked_files = run_command(untracked_files_command, cwd=REPO_PATH)
-    
-    if untracked_files:
-        tracked_list = [f.replace('/', '\\') for f in tracked_files.splitlines()] if tracked_files else []
-        all_files = untracked_files.splitlines()
-        untracked_list = []
-        repo_path_len = len(REPO_PATH.replace('/', '\\')) + 1 # +1 for the trailing slash
-        print(f"Debug: all_files = {all_files}")
-        print(f"Debug: tracked_list = {tracked_list}")
-        print(f"All files from PowerShell (all_files): {all_files}")
-        print(f"Tracked files from Git (tracked_list): {tracked_list}")
-        for f_abs in all_files:
-            f_rel = f_abs[repo_path_len:]
-            # Exclude .git folder and files already in the java subdirectory
-            print(f"Checking file: {f_rel}")
-            print(f"  .git not in f_rel: {'.git' not in f_rel}")
-            print(f"  not f_rel.startswith('java\\'): " + str(not f_rel.startswith('java\\')))
-            print(f"  f_rel not in tracked_list: {f_rel not in tracked_list}")
-            if '.git' not in f_rel and f_rel not in tracked_list:
-                untracked_list.append(f_rel)
+    # Get all files recursively using PowerShell (absolute paths)
+    untracked_files_raw = run_command(
+        'powershell -Command "Get-ChildItem -Path . -Recurse -File | ForEach-Object { $_.FullName }"',
+        cwd=REPO_PATH
+    )
+    if not untracked_files_raw:
+        print("⚠️ Could not get file list from PowerShell.")
+        return
 
-        if untracked_list:
-            print("\n".join(untracked_list))
-        else:
-            print("No untracked files found.")
+    all_files = untracked_files_raw.splitlines()
+    untracked_list = []
+    repo_path_normalized = REPO_PATH.replace('/', '\\').rstrip("\\") + "\\"
+
+    # Convert tracked files to lowercase + normalized for better comparison
+    tracked_set = set(f.lower().replace('/', '\\') for f in tracked_files)
+
+    for full_path in all_files:
+        full_path = full_path.strip()
+        if not full_path.startswith(repo_path_normalized):
+            continue  # Skip anything weird
+
+        rel_path = full_path[len(repo_path_normalized):]  # relative path
+        rel_path_normalized = rel_path.replace('/', '\\')
+
+        if (
+            '.git' in rel_path_normalized.lower() or
+            rel_path_normalized.lower().startswith('java\\') or
+            rel_path_normalized.lower() in tracked_set
+        ):
+            continue  # Skip git, already tracked, or inside 'java/'
+
+        untracked_list.append(rel_path_normalized)
+
+    if untracked_list:
+        print("Untracked files:")
+        for f in untracked_list:
+            print(f)
     else:
-        print("No untracked files found.")
+        print("✅ No untracked files found.")
     print("-----------------------")
 
 def push_to_git():
