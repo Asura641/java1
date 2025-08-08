@@ -3,7 +3,7 @@ import subprocess
 from datetime import datetime
 
 # -------- CONFIGURATION --------
-REPO_PATH = r"c:\Users\abhis\java\java"  # Replace with your actual local path
+REPO_PATH = r"c:\Users\abhis\java"  # Replace with your actual local path
 BRANCH = "master"                                 # Use the correct branch (main or master)
 COMMIT_MESSAGE = f"Auto update {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 # --------------------------------
@@ -29,6 +29,15 @@ def push_to_git():
     if not status:
         print("✅ No changes detected. Nothing to push.")
         return
+
+    print("📦 Moving Java files to 'java' subdirectory...")
+    # Move .java and .class files into the 'java' subdirectory
+    move_command = (
+        "Get-ChildItem -Path . -Include *.java, *.class -File | " +
+        "Where-Object { $_.Name -ne 'auto_push.py' } | " +
+        "ForEach-Object { Move-Item -Path $_.FullName -Destination 'java' -Force }"
+    )
+    run_command(f"powershell -Command \"& {{ {move_command} }}\"", cwd=REPO_PATH)
 
     print("📌 Adding files...")
     run_command("git add .", cwd=REPO_PATH)
