@@ -46,22 +46,30 @@ def list_repo_files():
     # Convert tracked files to lowercase + normalized for better comparison
     tracked_set = set(f.lower().replace('/', '\\') for f in tracked_files)
 
+    print(f"Debug: all_files = {all_files}")
+    print(f"Debug: tracked_set = {tracked_set}")
+
     for full_path in all_files:
         full_path = full_path.strip()
+        print(f"Debug: Processing full_path = {full_path}")
         if not full_path.startswith(repo_path_normalized):
+            print(f"Debug: Skipping {full_path} as it does not start with {repo_path_normalized}")
             continue  # Skip anything weird
 
         rel_path = full_path[len(repo_path_normalized):]  # relative path
         rel_path_normalized = rel_path.replace('/', '\\')
+        print(f"Debug: rel_path = {rel_path}, rel_path_normalized = {rel_path_normalized}")
 
         if (
             '.git' in rel_path_normalized.lower() or
             rel_path_normalized.lower().startswith('java\\') or
             rel_path_normalized.lower() in tracked_set
         ):
+            print(f"Debug: Skipping {rel_path_normalized} due to filter conditions.")
             continue  # Skip git, already tracked, or inside 'java/'
 
         untracked_list.append(rel_path_normalized)
+        print(f"Debug: Added {rel_path_normalized} to untracked_list.")
 
     if untracked_list:
         print("Untracked files:")
