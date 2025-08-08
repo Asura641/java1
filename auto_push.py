@@ -52,7 +52,7 @@ def list_untracked_files():
         output_lines.append("✅ All local files are tracked by Git.")
     return "\n".join(output_lines)
 
-def push_to_git():
+def push_to_git(progress_callback=None):
     output_lines = []
     # print("DEBUG: Entering push_to_git") # Debug print
     if not os.path.exists(REPO_PATH):
@@ -62,6 +62,8 @@ def push_to_git():
 
     output_lines.append(list_untracked_files())
 
+    if progress_callback:
+        progress_callback(10, "🔍 Checking for file changes...")
     output_lines.append("🔍 Checking for file changes...")
     status = run_command("git status --porcelain", cwd=REPO_PATH)
     if not status or status.startswith("[ERROR]") or "nothing to commit" in status:
@@ -70,6 +72,8 @@ def push_to_git():
         # print("DEBUG: No changes detected, returning.") # Debug print
         return result
 
+    if progress_callback:
+        progress_callback(40, "📌 Adding files...")
     output_lines.append("📌 Adding files...")
     add_output = run_command("git add .", cwd=REPO_PATH)
     if add_output and add_output.startswith("[ERROR]"):
@@ -77,6 +81,8 @@ def push_to_git():
         # print("DEBUG: Error adding files, returning.") # Added this for completeness
         return "\n".join(output_lines)
 
+    if progress_callback:
+        progress_callback(70, "📝 Committing changes...")
     output_lines.append("📝 Committing changes...")
     commit_output = run_command(f'git commit -m "{COMMIT_MESSAGE}"', cwd=REPO_PATH)
     if commit_output and commit_output.startswith("[ERROR]"):
@@ -84,6 +90,8 @@ def push_to_git():
         # print("DEBUG: Error committing changes, returning.") # Added this for completeness
         return "\n".join(output_lines)
 
+    if progress_callback:
+        progress_callback(90, "🚀 Pushing to GitHub...")
     output_lines.append("🚀 Pushing to GitHub...")
     push_output = run_command(f"git push origin {BRANCH}", cwd=REPO_PATH)
     if push_output and push_output.startswith("[ERROR]"):
@@ -92,6 +100,8 @@ def push_to_git():
         return "\n".join(output_lines)
 
     output_lines.append("🎯 Push complete.")
+    if progress_callback:
+        progress_callback(100, "🎯 Push complete.")
     final_output = "\n".join(output_lines)
     # print(f"DEBUG: push_to_git returning: {final_output}") # Debug print
     return final_output

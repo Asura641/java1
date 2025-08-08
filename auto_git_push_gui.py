@@ -39,7 +39,7 @@ class GitPushHandler(QObject):
     def start_git_push(self):
         print("[GitPushHandler] Directly calling push_to_git.")
         try:
-            output = push_to_git()
+            output = push_to_git(progress_callback=self.tray_app.update_progress_callback)
 
 
             self.tray_app.update_progress(output)
@@ -80,6 +80,10 @@ class GitTrayApp(QtWidgets.QSystemTrayIcon):
         self.show()
 
     def update_progress(self, message):
+        self.status_label.setText(message)
+
+    def update_progress_callback(self, value, message):
+        self.progress_bar.setValue(value)
         self.status_label.setText(message)
 
     def show_error(self, message):
