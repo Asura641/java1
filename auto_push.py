@@ -34,15 +34,15 @@ def list_repo_files():
     untracked_files = run_command(untracked_files_command, cwd=REPO_PATH)
     
     if untracked_files:
-        tracked_list = tracked_files.splitlines() if tracked_files else []
-
+        tracked_list = [f.replace('/', '\\') for f in tracked_files.splitlines()] if tracked_files else []
         all_files = untracked_files.splitlines()
-        
         untracked_list = []
-        for f in all_files:
+        repo_path_len = len(REPO_PATH.replace('/', '\\')) + 1 # +1 for the trailing slash
+        for f_abs in all_files:
+            f_rel = f_abs[repo_path_len:]
             # Exclude .git folder and files already in the java subdirectory
-            if '.git' not in f and '\\java\\' not in f and f not in tracked_list:
-                untracked_list.append(f)
+            if '.git' not in f_rel and not f_rel.startswith('java\\') and f_rel not in tracked_list:
+                untracked_list.append(f_rel)
 
         if untracked_list:
             print("\n".join(untracked_list))
