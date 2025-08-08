@@ -17,7 +17,8 @@ def run_command(command, cwd=None):
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] {e.stderr.strip()}")
+        print(f"[ERROR] Command failed: {command}")
+        print(f"[ERROR] Stderr: {e.stderr.strip()}")
         return None
 
 def get_git_tracked_files():
