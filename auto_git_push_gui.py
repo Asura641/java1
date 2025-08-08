@@ -41,7 +41,7 @@ class GitPushHandler(QObject):
         try:
             output = push_to_git()
 
-            print(f"[GitPushHandler] Output from push_to_git: {output}") # Debug print
+
             self.tray_app.update_progress(output)
         except Exception as e:
             self.tray_app.show_error(f"Error during git push: {e}")
