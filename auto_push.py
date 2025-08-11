@@ -2,21 +2,32 @@ import os
 import subprocess
 from datetime import datetime
 
-# -------- CONFIGURATION --------
-REPO_PATH = r"c:\Users\abhis\java"  # Set your local repo path
+
 BRANCH = "main"
 COMMIT_MESSAGE = f"Auto update {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 # --------------------------------
 
 def run_command(command, cwd=None):
     try:
-        result = subprocess.run(
-            command, cwd=cwd, shell=True, check=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
-        )
+        # Ensure cwd is a valid directory if provided
+        if cwd and not os.path.isdir(cwd):
+            return f"[ERROR] Directory not found: {cwd}"
+
+        result = subprocess.run(command, shell=True, check=True, cwd=cwd,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        return f"[ERROR] {e.stderr.strip()}"
+        error_message = f"[ERROR] Command '{command}' failed with exit code {e.returncode}.\nStdout: {e.stdout.strip()}\nStderr: {e.stderr.strip()}"
+        print(error_message)
+        return error_message
+    except FileNotFoundError:
+        error_message = f"[ERROR] Command not found: {command.split()[0]}"
+        print(error_message)
+        return error_message
+    except Exception as e:
+        error_message = f"[ERROR] An unexpected error occurred: {e}"
+        print(error_message)
+        return error_message
 
 def get_git_tracked_files():
     output = run_command("git ls-files", cwd=REPO_PATH)
@@ -52,10 +63,10 @@ def list_untracked_files():
         output_lines.append("✅ All local files are tracked by Git.")
     return "\n".join(output_lines)
 
-def push_to_git(progress_callback=None):
+def push_to_git(repo_path, auth_token, repo_url, progress_callback=None):
     output_lines = []
     # print("DEBUG: Entering push_to_git") # Debug print
-    if not os.path.exists(REPO_PATH):
+    if not os.path.exists(repo_path):
         output_lines.append("❌ Repository path not found!")
         # print("DEBUG: Repo path not found, returning.") # Debug print
         return "\n".join(output_lines)
@@ -65,7 +76,7 @@ def push_to_git(progress_callback=None):
     if progress_callback:
         progress_callback(10, "🔍 Checking for file changes...")
     output_lines.append("🔍 Checking for file changes...")
-    status = run_command("git status --porcelain", cwd=REPO_PATH)
+    status = run_command("git status --porcelain", cwd=repo_path)
     if not status or status.startswith("[ERROR]") or "nothing to commit" in status:
         output_lines.append("✅ No changes detected. Nothing to push.")
         result = "\n".join(output_lines)
@@ -75,7 +86,7 @@ def push_to_git(progress_callback=None):
     if progress_callback:
         progress_callback(40, "📌 Adding files...")
     output_lines.append("📌 Adding files...")
-    add_output = run_command("git add .", cwd=REPO_PATH)
+    add_output = run_command("git add .", cwd=repo_path)
     if add_output and add_output.startswith("[ERROR]"):
         output_lines.append(add_output)
         # print("DEBUG: Error adding files, returning.") # Added this for completeness
@@ -84,7 +95,7 @@ def push_to_git(progress_callback=None):
     if progress_callback:
         progress_callback(70, "📝 Committing changes...")
     output_lines.append("📝 Committing changes...")
-    commit_output = run_command(f'git commit -m "{COMMIT_MESSAGE}"', cwd=REPO_PATH)
+    commit_output = run_command(f'git commit -m "{COMMIT_MESSAGE}"', cwd=repo_path)
     if commit_output and commit_output.startswith("[ERROR]"):
         output_lines.append(commit_output)
         # print("DEBUG: Error committing changes, returning.") # Added this for completeness
@@ -93,7 +104,15 @@ def push_to_git(progress_callback=None):
     if progress_callback:
         progress_callback(90, "🚀 Pushing to GitHub...")
     output_lines.append("🚀 Pushing to GitHub...")
-    push_output = run_command(f"git push origin {BRANCH}", cwd=REPO_PATH)
+    # Configure Git to use the provided authentication token for the repository URL
+    # This is a temporary configuration for the current operation
+    run_command(f"git config --local credential.helper \"!f() {{ echo \"username=oauth2\\npassword={auth_token}\"; }}; f\"", cwd=repo_path)
+    run_command(f"git remote set-url origin {repo_url}", cwd=repo_path)
+
+    push_output = run_command(f"git push origin {BRANCH}", cwd=repo_path)
+
+    # Clear the temporary credential helper
+    run_command("git config --local --unset credential.helper", cwd=repo_path)
     if push_output and push_output.startswith("[ERROR]"):
         output_lines.append(push_output)
         # print("DEBUG: Error pushing to GitHub, returning.") # Added this for completeness
@@ -106,5 +125,4 @@ def push_to_git(progress_callback=None):
     # print(f"DEBUG: push_to_git returning: {final_output}") # Debug print
     return final_output
 
-if __name__ == "__main__":
-    print(push_to_git())
+# The main execution block is removed as this file is now a module for the GUI.
