@@ -13,7 +13,7 @@ class Single_Array_ex2{
 	a[3]=sc.nextInt();
 	a[4]=sc.nextInt();
 	int sum=0;
-	for(int i=0;i<a.length;i++)
+	for( i=0;i<a.length;i++)
 	{
 	sum=sum+i;
 	}
