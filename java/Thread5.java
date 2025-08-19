@@ -1,4 +1,4 @@
-class Thread5 implements runnable{
+class Thread5 implements Runnable{
 	public void run(){
 	System.out.println("Thread running");
 }
