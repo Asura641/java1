@@ -4,18 +4,16 @@ class Single_Array_ex2{
 	Scanner sc =new Scanner(System.in);	
 	int i ;
 	System.out.println("Enter Array limit: ");
-	i=sc.nextInt();
-	int a[]=new int[i];
-	System.out.println("Enter the Array value:");
-	a[0]=sc.nextInt();
-	a[1]=sc.nextInt();
-	a[2]=sc.nextInt();
-	a[3]=sc.nextInt();
-	a[4]=sc.nextInt();
+	int n = sc.nextInt();   
+        int a[] = new int[n];
+	System.out.println("Enter the Array values:");
+        for ( i = 0; i < a.length; i++) {
+            a[i] = sc.nextInt();   
+        }
 	int sum=0;
 	for( i=0;i<a.length;i++)
 	{
-	sum=sum+i;
+	sum=sum+a[i];
 	}
 	System.out.println("The sum is "+sum);	
 }
