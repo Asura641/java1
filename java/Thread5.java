@@ -4,7 +4,8 @@ class Thread5 implements Runnable{
 }
 public static void main(String [] args ){
 	Thread5 th =new Thread5 ();
-	th.start();
+	Thread t =new Thread ();
+	t.start();
 }
 }
 
