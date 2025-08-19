@@ -4,7 +4,7 @@ class Thread5 implements Thread{
 }
 public static void main(String [] args ){
 	Thread5 th =new Thread5 ();
-	th.start();
+	th.run();
 }
 }
 
