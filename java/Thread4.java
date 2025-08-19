@@ -1,5 +1,5 @@
 class Thread4 extends Thread{
-	void run(){
+	public void run(){
 	System.out.println("Thread running");
 }
 public static void main(String [] args ){
